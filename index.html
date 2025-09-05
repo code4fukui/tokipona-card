@@ -209,13 +209,13 @@ window.onload = function() {
 
 	
 	const saveBlocks = () => {
-		const list = blks.map(i => [i.x, i.y, i.w, i.c].join(",")).join("|");
+		const list = blks.map(i => [i.x, i.y, i.w, i.c].join(",")).join(".");
 		document.location.hash = list;
 	};
 	const loadBlocks = () => {
 		const hash = document.location.hash.substring(1);
 		if (!hash) return false;
-		const ss = hash.split("|");
+		const ss = hash.split(".");
 		blks = [];
 		for (let i = 0; i < ss.length; i++) {
 			const p = ss[i].split(",").map(i => parseInt(i));
