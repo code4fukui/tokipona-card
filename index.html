@@ -1,0 +1,259 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="icon" href="data:">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black"><!-- default / black / black-translucent -->
+<link rel="apple-touch-icon" href="./blocks.jpg">
+<title>blocks</title>
+<meta property="og:image" content="./blocks.jpg">
+<script type="module">
+import { getContext } from "./canvas.js";
+import { setUI } from "./ui.js";
+import { rgb2hsv } from "./color.js";
+import { hsv2rgb } from "./color.js";
+import { rnd } from "https://js.sabae.cc/rnd.js";
+
+const removeArray = (ar, o) => {
+	for (let i = 0; i < ar.length; i++) {
+		if (ar[i] === o) {
+			ar.splice(i, 1);
+			i--;
+		}
+	}
+};
+
+window.onload = function() {
+	const c = canvas;
+	const g = getContext(c);
+	setUI(c);
+	
+	g.drawRect = function(x, y, w, h) {
+		g.beginPath();
+		g.moveTo(x, y);
+		g.lineTo(x + w, y);
+		g.lineTo(x + w, y + h);
+		g.lineTo(x, y + h);
+		g.closePath();
+		g.stroke();
+	};
+	
+	const getDarkerColor = function(cc) {
+		const hsv = rgb2hsv(cc[0], cc[1], cc[2]);
+		hsv[2] *= .5;
+		return hsv2rgb(hsv[0], hsv[1], hsv[2]);
+	};
+	const stud = 20;
+	const col = [
+		[ 240, 191, 58 ],
+		[ 71, 163, 57 ],
+		[ 23, 54, 167 ],
+		[ 225, 49, 43 ],
+		[ 158, 187, 46 ],
+		[ 232, 118, 49 ],
+		[ 21, 15, 7 ],
+		[ 229, 210, 155 ],
+		[ 22, 53, 46 ],
+	];
+	const Block = function(x, y, w, c) {
+		this.x = x;
+		this.y = y;
+		this.w = w;
+		this.c = c;
+		this.col = col[c];
+		this.coldark = getDarkerColor(this.col);
+		this.bw = 2 * stud * w;
+		this.bh = stud * 6 / 5;
+		this.draw = function(g) {
+			const x = this.x - this.bw / 2;
+			const y = this.y - this.bh / 2;
+			const w = this.bw;
+			const h = this.bh;
+			g.setColor(this.col[0], this.col[1], this.col[2]);
+			g.fillRect(x, y, w, h);
+			g.setColor(this.coldark[0], this.coldark[1], this.coldark[2]);
+			g.beginPath();
+			g.lineTo(x + w - 1, y);
+			g.lineTo(x + w - 1, y + h - 1);
+			g.lineTo(x, y + h - 1);
+			g.stroke();
+		};
+		this.drawStud = function(g) {
+			g.setColor(this.col[0], this.col[1], this.col[2]);
+			const sw = stud / 2;
+			const sh = stud / 6;
+			for (let i = 0; i < this.w; i++) {
+				g.fillRect(this.x - stud / 2 - stud * i - sw / 2, this.y - this.bh / 2 - sh, sw, sh);
+				g.fillRect(this.x + stud / 2 + stud * i - sw / 2, this.y - this.bh / 2 - sh, sw, sh);
+			}
+		};
+		this.isHit = function(x, y) {
+			return x >= this.x - this.bw / 2 && x < this.x + this.bw / 2 && y >= this.y - this.bh / 2 && y < this.y + this.bh / 2;
+		};
+		this.move = function(dx, dy) {
+			this.x += dx;
+			this.y += dy;
+		};
+		this.snap = function() {
+			const sw = stud;
+			this.x = Math.floor((this.x + sw / 2) / sw) * sw;
+			this.y = Math.floor((this.y + this.bh / 2) / this.bh) * this.bh;
+		};
+		this.snap();
+	};
+
+	
+	for (let i = 0; i < col.length; i++) {
+		const cc = col[i];
+		const hsv = rgb2hsv(cc[0], cc[1], cc[2]);
+		hsv[1] *= 1.8;
+		if (hsv[1] > 1)
+			hsv[1] = 1;
+		col[i] = hsv2rgb(hsv[0], hsv[1], hsv[2]);
+	}
+	
+	const blocks = [
+		[ 0, 9, 1 ],
+		[ 1, 9, 1 ],
+		[ 2, 9, 1 ],
+		[ 3, 9, 1 ],
+		[ 4, 6, 1 ],
+		[ 5, 6, 1 ],
+		[ 6, 3, 1 ],
+		[ 7, 3, 1 ],
+		[ 8, 2, 1 ],
+		[ 0, 3, 2 ],
+		[ 1, 3, 2 ],
+		[ 2, 3, 2 ],
+		[ 3, 3, 2 ],
+		[ 4, 2, 2 ],
+		[ 5, 2, 2 ],
+		[ 6, 2, 2 ],
+		[ 7, 2, 2 ],
+		[ 0, 1, 4 ],
+		[ 1, 1, 3 ],
+//		[ 3, 9, 1 ],
+	];
+	let blks = null;
+	const makeBlocks = function(w, h) {
+		blks = [];
+		for (let i = 0; i < blocks.length; i++) {
+			const b = blocks[i];
+			for (let j = 0; j < b[1]; j++) {
+				blks.push(new Block(rnd(w * .8) + w * .1, rnd(h * .8) + h * .1, b[2], b[0]));
+			}
+		}
+	};
+	const getHitBlock = function(x, y) {
+		for (let i = 0; i < blks.length; i++)
+			if (blks[i].isHit(x, y))
+				return blks[i];
+		return null;
+	};
+	const toTop = function(blk) {
+		removeArray(blks, blk);
+		blks.push(blk);
+	};
+	
+	let mx = -1;
+	let my = -1;
+	let cur = null;
+	
+	const ox = 0;
+	const oy = 0;
+	const tw = 1;
+	g.draw = function() {
+		if (blks === null) {
+			//stud *= g.ratio;
+			if (!loadBlocks()) {
+				makeBlocks(g.cw, g.ch);
+				console.log(blks)
+			}
+		}
+		g.setColor(255, 255, 255);
+		g.fillRect(0, 0, g.cw, g.ch);
+		for (let i = 0; i < blks.length; i++) {
+			blks[i].drawStud(g);
+		}
+		for (let i = 0; i < blks.length; i++) {
+			blks[i].draw(g);
+		}
+	};
+	let drag = false;
+	c.onuidown = function(x, y) {
+		drag = true;
+		cur = getHitBlock(x, y);
+		if (cur)
+			toTop(cur);
+		mx = x;
+		my = y;
+	}
+	c.onuimove = function(x, y) {
+		if (drag) {
+			if (cur) {
+				const dx = x - mx;
+				const dy = y - my;
+				cur.move(dx, dy);
+				mx = x;
+				my = y;
+				g.draw();
+			}
+		}
+	};
+	c.onuiup = function() {
+		drag = false;
+		if (cur) {
+			cur.snap();
+			g.draw();
+			cur = null;
+
+			saveBlocks();
+		}
+	};
+
+	
+	const saveBlocks = () => {
+		console.log(blks);
+		const list = blks.map(i => [i.x, i.y, i.w, i.c].join(",")).join("|");
+		document.location.hash = list;
+	};
+	const loadBlocks = () => {
+		const hash = document.location.hash.substring(1);
+		if (!hash) return false;
+		const ss = hash.split("|");
+		blks = [];
+		for (let i = 0; i < ss.length; i++) {
+			const p = ss[i].split(",").map(i => parseInt(i));
+			console.log("p", p);
+			const b = new Block(p[0], p[1], p[2], p[3]);
+			blks.push(b);
+		}
+		return true;
+	};
+	g.init();
+};
+</script>
+<style>
+body {
+	margin: 0px;
+	text-align: center;
+}
+#canvas {
+	display: inline-block;
+	width: 720px;
+	height: 480px;
+	margin-top: 10px;
+	cursor: pointer;
+	border: 2px solid black;
+}
+</style>
+</head>
+<body>
+
+<div id="main">
+<canvas id="canvas"></canvas>
+</div>
+
+ブロックス src on GitHub forked <a href=https://fukuno.jig.jp/2012/>一日一創2012</a><br>
+LICENSE: CC BY <a href=https://x.com/taisukef>@taisukef</a><br>
+</div></div>
+
+</body>
+</html>
