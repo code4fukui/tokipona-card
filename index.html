@@ -78,6 +78,7 @@ const snaph = 110;
 const dcards = new DraggableCards(snapw, snaph);
 
 const addCard = (t, x, y) => {
+  if (typeof t == "string") t = { tok: t, jpn: "", tok_latin: "" };
   const card = document.createElement('div');
 	card.className = 'card';
   const cardc = document.createElement('div');
@@ -116,6 +117,18 @@ const addCard = (t, x, y) => {
     const t = tok2jpn.find(i => i.tok == name);
     for (let j = 0; j < 3; j++) {
       addCard(t, 0 + i % 4, 1 + Math.floor(i / 4));
+    }
+    i++;
+  }
+}
+// 句読点カードも3枚ずつ
+{
+  let i = 0;
+  //for (const t of tok2jpn.filter(i => i.sp == 1)) {
+  for (const name of [',', '.', '!', 'wan']) {
+    const t = tok2jpn.find(i => i.tok == name) ?? name;
+    for (let j = 0; j < 3; j++) {
+      addCard(t, 0 + i % 4, 3 + Math.floor(i / 4));
     }
     i++;
   }
